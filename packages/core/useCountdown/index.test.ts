@@ -1,7 +1,7 @@
 import type { Pausable } from '@vueuse/shared'
 import type { UseCountdownOptions } from '.'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { effectScope } from 'vue'
+import { effectScope, ref } from 'vue'
 import { useCountdown } from '.'
 
 describe('useCountdown', () => {
@@ -109,5 +109,25 @@ describe('useCountdown', () => {
     expect(isActive.value).toBeFalsy()
     vi.advanceTimersByTime(60)
     expect(tickCallback).toHaveBeenCalledTimes(0)
+  })
+
+  it('onCompleted can be a ref', async () => {
+    const initialOnComplete = vi.fn()
+    const newOnComplete = vi.fn()
+
+    const onComplete = ref(initialOnComplete)
+
+    const { start } = useCountdown(1, { onComplete, immediate: true })
+    expect(initialOnComplete).toHaveBeenCalledTimes(0)
+    expect(newOnComplete).toHaveBeenCalledTimes(0)
+    vi.advanceTimersByTime(1010)
+    expect(initialOnComplete).toHaveBeenCalledTimes(1)
+    expect(newOnComplete).toHaveBeenCalledTimes(0)
+
+    start()
+    onComplete.value = newOnComplete
+    vi.advanceTimersByTime(1010)
+    expect(initialOnComplete).toHaveBeenCalledTimes(1)
+    expect(newOnComplete).toHaveBeenCalledTimes(1)
   })
 })

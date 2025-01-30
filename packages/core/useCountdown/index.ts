@@ -1,7 +1,7 @@
-import type { MaybeRefOrGetter, Pausable } from '@vueuse/shared'
+import type { MaybeRefOrGetter, Pausable, MaybeRef } from '@vueuse/shared'
 import type { Ref } from 'vue'
 import { useIntervalFn } from '@vueuse/shared'
-import { ref, toValue } from 'vue'
+import { ref, toValue, unref, watchEffect } from 'vue'
 
 export interface UseCountdownOptions {
   /**
@@ -11,7 +11,7 @@ export interface UseCountdownOptions {
   /**
    * Callback function called when the countdown reaches 0.
    */
-  onComplete?: () => void
+  onComplete?: MaybeRef<() => void>
   /**
    * Callback function called on each tick of the countdown.
    */
@@ -53,6 +53,11 @@ export interface UseCountdownReturn extends Pausable {
  */
 export function useCountdown(initialCountdown: MaybeRefOrGetter<number>, options?: UseCountdownOptions): UseCountdownReturn {
   const remaining = ref(toValue(initialCountdown))
+  const onComplete = ref(options?.onComplete)
+
+  watchEffect(() => {
+    onComplete.value = unref(options?.onComplete)
+  })
 
   const intervalController = useIntervalFn(() => {
     const value = remaining.value - 1
@@ -60,7 +65,7 @@ export function useCountdown(initialCountdown: MaybeRefOrGetter<number>, options
     options?.onTick?.()
     if (remaining.value <= 0) {
       intervalController.pause()
-      options?.onComplete?.()
+     onComplete.value?.()
     }
   }, options?.interval ?? 1000, { immediate: options?.immediate ?? false })
 
